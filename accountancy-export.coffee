@@ -4,8 +4,8 @@ import * as fs from 'node:fs/promises'
 import uniqBy from 'lodash.uniqby'
 import { insertAccountancyExport, insertFile, fetchInvoices, bookInvoices } from './sparql'
 
-INVOICE_EXPORT_FILE_TYPE = process.env.INVOICE_EXPORT_FILE_TYPE || 'http://data.rollvolet.be/concepts/6fbc15d2-11c0-4868-8b11-d15b8f1a3802'
-CUSTOMER_EXPORT_FILE_TYPE = process.env.CUSTOMER_EXPORT_FILE_TYPE || 'http://data.rollvolet.be/concepts/6fbc15d2-11c0-4868-8b11-d15b8f1a3802'
+INVOICE_EXPORT_FILE_TYPE = 'http://data.rollvolet.be/concepts/6fbc15d2-11c0-4868-8b11-d15b8f1a3802'
+CUSTOMER_EXPORT_FILE_TYPE = 'http://data.rollvolet.be/concepts/7afecda8-f128-4043-a69c-a68cbaaedac5'
 
 export default class AccountancyExport
   constructor: (@fromNumber, @untilNumber, @type) ->
