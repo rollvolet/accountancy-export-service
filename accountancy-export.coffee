@@ -8,7 +8,7 @@ INVOICE_EXPORT_FILE_TYPE = 'http://data.rollvolet.be/concepts/6fbc15d2-11c0-4868
 CUSTOMER_EXPORT_FILE_TYPE = 'http://data.rollvolet.be/concepts/7afecda8-f128-4043-a69c-a68cbaaedac5'
 
 export default class AccountancyExport
-  constructor: (@fromNumber, @untilNumber, @type) ->
+  constructor: (@fromNumber, @untilNumber, @type, @creator) ->
     @isDryRun = @type is 'http://data.rollvolet.be/vocabularies/crm/DryRunAccountancyExport'
 
   run: ->
@@ -58,6 +58,7 @@ export default class AccountancyExport
       name: "#{fileId}.csv"
       format: 'text/csv'
       created: new Date()
+      creator: @creator
       type: type
     path = "/share/#{file.name}"
     await fs.writeFile path, content

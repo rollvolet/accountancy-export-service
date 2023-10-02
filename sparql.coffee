@@ -3,6 +3,19 @@ import Invoice from './invoice'
 
 BASE_URI = process.env.BASE_URI || 'http://data.rollvolet.be'
 
+export fetchUserForSession = (session) ->
+  result = await query """
+    PREFIX muSession: <http://mu.semte.ch/vocabularies/session/>
+    PREFIX foaf: <http://xmlns.com/foaf/0.1/>
+
+    SELECT ?user
+    WHERE {
+      #{sparqlEscapeUri(session)} muSession:account ?account .
+      ?user foaf:account ?account .
+    } LIMIT 1
+  """
+  result.results.bindings[0]?.user?.value
+
 export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
   dryRunFilter = if isDryRun then "" else "FILTER NOT EXISTS { ?invoice crm:bookingDate ?bookingDate . }"
   result = await query """
@@ -122,6 +135,8 @@ export insertFile = (file) ->
   dropFileUri = "share://#{file.name}"
   extension = file.name.substr(file.name.lastIndexOf('.') + 1)
 
+  creatorStatement = if file.creator then "dct:creator #{sparqlEscapeUri(file.creator)} ;" else ''
+
   await update """
     PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
     PREFIX nfo: <http://www.semanticdesktop.org/ontologies/2007/03/22/nfo#>
@@ -139,6 +154,7 @@ export insertFile = (file) ->
         nfo:fileSize #{sparqlEscapeInt(file.size)} ;
         dbpedia:fileExtension #{sparqlEscapeString(extension)} ;
         nfo:fileCreated #{sparqlEscapeDateTime(file.created)} ;
+        #{creatorStatement}
         dct:type #{sparqlEscapeUri(file.type)} .
       #{sparqlEscapeUri(dropFileUri)} a nfo:FileDataObject ;
         mu:uuid #{sparqlEscapeString(file.id)} ;
@@ -147,6 +163,7 @@ export insertFile = (file) ->
         nfo:fileSize #{sparqlEscapeInt(file.size)} ;
         dbpedia:fileExtension #{sparqlEscapeString(extension)} ;
         nfo:fileCreated #{sparqlEscapeDateTime(file.created)} ;
+        #{creatorStatement}
         nie:dataSource #{sparqlEscapeUri(fileUri)} .
     }
   """
