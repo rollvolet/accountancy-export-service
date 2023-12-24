@@ -24,7 +24,7 @@ export getBookYear = (invoiceDate) ->
 
 export getPeriod = (invoiceDate) ->
   invoiceMonth = invoiceDate.getMonth() + 1
-  startMonth = if WINBOOKS_BOOK_YEAR >= 100 then WINBOOKS_BOOK_YEAR / 100 else 0
+  startMonth = if WINBOOKS_BOOK_YEAR >= 100 then Math.floor(WINBOOKS_BOOK_YEAR / 100) else 0
   diff = invoiceMonth - startMonth + 1
   diff += 12 if diff <= 0
   "#{diff}".padStart(2, '0') # format with minimal 2 digits

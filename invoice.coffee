@@ -33,9 +33,15 @@ export default class Invoice
     invoiceNumber = "#{@number}".padStart(5, '0') # format with minimal 5 digits
     invoiceDateStr = formatDate(@invoiceDate, 'yyyyMMdd')
     dueDateStr = formatDate(@dueDate or @invoiceDate, 'yyyyMMdd')
+
     amount = @totalAmount - @depositAmount
     vatAmount = amount * @vatRate / 100.0
     grossAmount = amount + vatAmount
+
+    if @isCreditNote
+      amount *= -1
+      vatAmount *= -1
+      grossAmount *= -1
 
     grossAmountSalesLine =
       DocType: '1'

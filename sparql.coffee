@@ -66,7 +66,7 @@ export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
         BIND(IF(?depositInvoiceType = p2poInvoice:E-CreditNote, ?depositAmount * -1, ?depositAmount) as ?arithmeticDepositAmount)
       }
     } GROUP BY ?invoice ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
-    ORDER BY DESC(?number)
+    ORDER BY ?number
   """
 
   result.results.bindings.map (binding) -> Invoice.fromSparqlBinding(binding)
