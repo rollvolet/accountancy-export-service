@@ -1,4 +1,4 @@
-import { query, update, sparqlEscapeString, sparqlEscapeDateTime, sparqlEscapeInt, sparqlEscapeUri, uuid } from 'mu'
+import { query, update, sparqlEscapeString, sparqlEscapeDateTime, sparqlEscapeInt, sparqlEscapeFloat, sparqlEscapeUri, uuid } from 'mu'
 import Invoice from './invoice'
 
 BASE_URI = process.env.BASE_URI || 'http://data.rollvolet.be'
@@ -29,13 +29,14 @@ export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
     PREFIX schema: <http://schema.org/>
     PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
 
-    SELECT ?invoice ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode (SUM(?arithmeticDepositAmount) as ?depositAmount) ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
+    SELECT ?invoice ?invoiceType ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode (SUM(?arithmeticDepositAmount) as ?depositAmount) ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
     WHERE {
-      ?invoice a p2poDocument:E-Invoice ;
+      ?invoice a p2poDocument:E-Invoice, ?invoiceType ;
         mu:uuid ?uuid ;
         p2poInvoice:dateOfIssue ?date ;
         p2poInvoice:invoiceNumber ?number ;
         p2poInvoice:hasTotalLineNetAmount ?totalAmount .
+      FILTER (?invoiceType != p2poDocument:E-Invoice)
       FILTER (?number >= #{sparqlEscapeInt(fromNumber)} && ?number <= #{sparqlEscapeInt(untilNumber)})
       #{dryRunFilter}
       ?case ?partOfCaseP ?invoice ; p2poPrice:hasVATCategoryCode ?vat .
@@ -65,7 +66,7 @@ export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
         OPTIONAL { ?depositInvoice dct:type ?depositInvoiceType . }
         BIND(IF(?depositInvoiceType = p2poInvoice:E-CreditNote, ?depositAmount * -1, ?depositAmount) as ?arithmeticDepositAmount)
       }
-    } GROUP BY ?invoice ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
+    } GROUP BY ?invoice ?invoiceType ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
     ORDER BY ?number
   """
 
@@ -101,6 +102,46 @@ export bookInvoices = (fromNumber, untilNumber) ->
         ext:depositInvoice
       }
       ?invoice p2poInvoice:hasBuyer/vcard:hasUID ?customerNumber .
+    }
+  """
+
+export getInvoicelines = (uri) ->
+  result = await query """
+    PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
+    PREFIX schema: <http://schema.org/>
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+
+    SELECT ?line ?amount
+    WHERE {
+      GRAPH ?g {
+        <#{uri}> a p2poInvoice:E-FinalInvoice ;
+          p2poInvoice:hasInvoiceLine ?line .
+        ?line schema:amount ?amount
+      }
+    }
+  """
+
+  result.results.bindings.map (binding) -> { uri: binding.line.value, amount: binding.amount.value }
+
+
+export updateInvoiceAmount = (uri, amount) ->
+  await update """
+    PREFIX p2poDocument: <https://purl.org/p2p-o/document#>
+    PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
+
+    DELETE {
+      GRAPH ?g {
+        #{sparqlEscapeUri(uri)} p2poInvoice:hasTotalLineNetAmount ?amount .
+      }
+    } INSERT {
+      GRAPH ?g {
+        #{sparqlEscapeUri(uri)} p2poInvoice:hasTotalLineNetAmount #{sparqlEscapeFloat(amount)} .
+      }
+    } WHERE {
+      GRAPH ?g {
+        #{sparqlEscapeUri(uri)} a p2poDocument:E-Invoice ;
+          p2poInvoice:hasTotalLineNetAmount ?amount .
+      }
     }
   """
 

@@ -1,7 +1,8 @@
 import formatDate from 'date-fns/format'
 import parseISO from 'date-fns/parseISO'
-import { formatDecimal, getBookYear, getPeriod, getAccount, getVatCode, getDocType } from './helpers'
+import { sum, formatDecimal, getBookYear, getPeriod, getAccount, getVatCode, getDocType, getTotalAmount } from './helpers'
 import Customer from './customer'
+import { getInvoicelines, updateInvoiceAmount } from './sparql'
 
 WINBOOKS_DIARY = process.env.WINBOOKS_DIARY || 'VF1'
 
@@ -10,6 +11,7 @@ export default class Invoice
     invoice = new Invoice()
     invoice.uri = binding['invoice'].value
     invoice.id = binding['uuid'].value
+    invoice.type = binding['invoiceType'].value
     invoice.invoiceDate = parseISO(binding['date'].value)
     invoice.number = parseInt(binding['number'].value)
     invoice.totalAmount = parseFloat(binding['totalAmount'].value)
@@ -22,10 +24,20 @@ export default class Invoice
 
     invoice
 
+  isDepositInvoice: ->
+    @type is 'https://purl.org/p2p-o/invoice#E-PrePaymentInvoice'
+
   validate: ->
-    # TODO check invoice validity for export
-    console.log "Invoice validation is not yet implemented"
-    true
+    unless @isDepositInvoice()
+      console.log "Validating total amount for invoice <#{@uri}>"
+      lines = await getInvoicelines(@uri)
+      total = sum(lines.map((line) -> parseFloat(line.amount)))
+      if (total != @totalAmount)
+        console.log "Invoice total amount is not up-to-date for invoice <#{@uri}>. Expected #{@totalAmount} but calculated #{total}. Going to update the amount in the database."
+        await updateInvoiceAmount(@uri, total)
+        @totalAmount = total
+
+    @number != null and @invoiceDate != null and @totalAmount != null
 
   export: ->
     bookYear = getBookYear(@invoiceDate)

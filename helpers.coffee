@@ -1,6 +1,9 @@
 WINBOOKS_BOOK_YEAR = parseInt(process.env.WINBOOKS_BOOK_YEAR || '0101')
 WINBOOKS_START_YEAR = parseInt(process.env.WINBOOKS_START_YEAR || '2015')
 
+export sum = (array) ->
+  array.reduceRight(((acc, cur) -> acc + cur), 0);
+
 export formatDecimal = (number) ->
   parseFloat(number.toFixed(2)).toFixed(3) # formatted as 0.000
 
