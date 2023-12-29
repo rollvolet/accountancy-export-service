@@ -48,6 +48,11 @@ Possible values for `type` are `http://data.rollvolet.be/vocabularies/crm/DryRun
 ##### Response
 - `201 Created` if the export has been executed succesfully. The export generates two CSV files, one containing invoices and another one containing customer information. The resulting files are stored in the (mounted) `/share` volume. The response body will contain the newly created accountancy export.
 
+#### PUT /invoice-amounts
+Endpoint that validates and corrects the total amount of invoices by calculating the sum of the invoicelines.
+
+##### Response
+- `202 Accepted` if the validation is triggered.
 
 ### Data model
 #### Prefixes

@@ -1,4 +1,6 @@
 import { query, update, sparqlEscapeString, sparqlEscapeDateTime, sparqlEscapeInt, sparqlEscapeFloat, sparqlEscapeUri, uuid } from 'mu'
+import { querySudo, updateSudo } from '@lblod/mu-auth-sudo';
+import parseISO from 'date-fns/parseISO'
 import Invoice from './invoice'
 
 BASE_URI = process.env.BASE_URI || 'http://data.rollvolet.be'
@@ -123,9 +125,42 @@ export getInvoicelines = (uri) ->
 
   result.results.bindings.map (binding) -> { uri: binding.line.value, amount: binding.amount.value }
 
+export getInvoicesWithDifferentTotalAmounts = () ->
+  result = await querySudo """
+    PREFIX p2poDocument: <https://purl.org/p2p-o/document#>
+    PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
+    PREFIX dct: <http://purl.org/dc/terms/>
+    PREFIX schema: <http://schema.org/>
+
+    SELECT ?s ?amount ?number ?date ?source ?lineTotal WHERE {
+      GRAPH ?g {
+        ?s p2poInvoice:invoiceNumber ?number ;
+          p2poInvoice:dateOfIssue ?date ;
+          dct:source ?source ;
+          p2poInvoice:hasTotalLineNetAmount ?amount .
+        {
+          SELECT ?s (SUM(?lineAmount) as ?lineTotal)
+          WHERE {
+            GRAPH ?g {
+              ?s a p2poInvoice:E-FinalInvoice ; p2poInvoice:hasInvoiceLine ?line .
+              ?line schema:amount ?lineAmount .
+            }
+          }
+        }
+        FILTER (ROUND(100 * ?lineTotal) != ROUND(100 * ?amount))
+     }
+  }
+  """
+
+  result.results.bindings.map (binding) ->
+    uri: binding.s.value
+    number: binding.number.value
+    date: parseISO(binding.date.value)
+    invoiceTotal: parseFloat(binding.amount.value)
+    lineTotal: parseFloat(binding.lineTotal.value)
 
 export updateInvoiceAmount = (uri, amount) ->
-  await update """
+  await updateSudo """
     PREFIX p2poDocument: <https://purl.org/p2p-o/document#>
     PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
 

@@ -1,6 +1,16 @@
 import { app, errorHandler } from 'mu'
+import { CronJob } from 'cron'
+import fetch from 'node-fetch'
 import AccountancyExport from './accountancy-export'
 import { fetchUserForSession } from './sparql'
+import { ensureInvoiceAmounts } from './batch-jobs'
+
+INVOICE_AMOUNT_VALIDATION_FREQUENCY = process.env.INVOICE_AMOUNT_VALIDATION_FREQUENCY || '0 */30 * * * *' # every 30 minutes
+
+CronJob.from
+  cronTime: INVOICE_AMOUNT_VALIDATION_FREQUENCY
+  onTick: () -> await fetch('http://localhost/invoice-amounts', { method: 'PUT' })
+  start: true
 
 app.post '/accountancy-exports', (req, res, next) ->
   session = req.get 'mu-session-id'
@@ -27,5 +37,9 @@ app.post '/accountancy-exports', (req, res, next) ->
     )
   else
     next(new Error('Invoice number range is missing'))
+
+app.put '/invoice-amounts/', (req, res, next) ->
+  ensureInvoiceAmounts() # don't await async task
+  res.status(202).send()
 
 app.use(errorHandler)
