@@ -30,6 +30,7 @@ export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
     PREFIX dct: <http://purl.org/dc/terms/>
     PREFIX schema: <http://schema.org/>
     PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+    PREFIX prov: <http://www.w3.org/ns/prov#>
 
     SELECT ?invoice ?invoiceType ?uuid ?date ?number ?totalAmount ?vatRate ?vatCode (SUM(?arithmeticDepositAmount) as ?depositAmount) ?type ?dueDate ?customerNumber ?customerName ?customerType ?customerVatNumber ?street ?postalCode ?city ?countryCode
     WHERE {
@@ -49,7 +50,7 @@ export fetchInvoices = (fromNumber, untilNumber, isDryRun) ->
       }
       ?invoice p2poInvoice:hasBuyer ?customer .
       ?customer vcard:hasUID ?customerNumber ;
-        vcard:hasFN ?customerName ;
+        prov:hadPrimarySource/vcard:hasFamilyName ?customerName ;
         dct:type ?customerType .
       OPTIONAL { ?customer schema:vatID ?customerVatNumber . }
       OPTIONAL {
