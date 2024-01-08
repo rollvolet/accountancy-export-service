@@ -3,7 +3,7 @@ import { formatName, formatVatNumber } from './helpers'
 export default class Customer
   @fromSparqlBinding: (binding) ->
     customer = new Customer()
-    customer.number = binding['customerNumber'].value
+    customer.number = parseInt(binding['customerNumber'].value)
     customer.name = binding['customerName'].value
     customer.isCompany = binding['customerType'].value is 'http://www.w3.org/2006/vcard/ns#Organization'
     customer.vatNumber = binding['customerVatNumber']?.value

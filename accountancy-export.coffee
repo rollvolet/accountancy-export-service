@@ -2,6 +2,7 @@ import { uuid } from 'mu'
 import { stringify as stringifyCsv } from 'csv-stringify/sync'
 import * as fs from 'node:fs/promises'
 import uniqBy from 'lodash.uniqby'
+import sortBy from 'lodash.sortby'
 import { insertAccountancyExport, insertFile, fetchInvoices, bookInvoices } from './sparql'
 
 INVOICE_EXPORT_FILE_TYPE = 'http://data.rollvolet.be/concepts/6fbc15d2-11c0-4868-8b11-d15b8f1a3802'
@@ -13,7 +14,7 @@ export default class AccountancyExport
 
   run: ->
     invoices = await fetchInvoices(@fromNumber, @untilNumber, @isDryRun)
-    customers = uniqBy invoices.map((invoice) -> invoice.customer), 'number'
+    customers = sortBy uniqBy(invoices.map((invoice) -> invoice.customer), 'number'), 'number'
 
     if @isDryRun
       console.log("Starting dry run of accountancy export. Simulating booking of #{invoices.length} invoices and #{customers.length} customers")
