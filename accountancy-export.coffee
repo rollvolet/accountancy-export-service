@@ -71,4 +71,4 @@ export default class AccountancyExport
     { @uri, @id, @date } = await insertAccountancyExport(@fromNumber, @untilNumber, @type, files)
 
   book: ->
-    bookInvoices(@fromNumber, @untilNumber)
+    await bookInvoices(@fromNumber, @untilNumber)
