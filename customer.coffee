@@ -23,7 +23,7 @@ export default class Customer
       Name2: ''
       CivName1: ''
       CivName2: ''
-      Address1: formatName(@street)
+      Address1: formatName(@address.street)
       Address2: ''
       VATCat: if @isCompany then '1' else '3'
       Country: if @address.country then @address.country else '??'
