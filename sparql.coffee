@@ -185,7 +185,9 @@ export insertAccountancyExport = (fromNumber, untilNumber, type, files) ->
   id = uuid()
   uri = "#{BASE_URI}/accountancy-exports/#{id}"
   now = new Date()
-  fileUris = files.map (file) -> sparqlEscapeUri(file)
+  if files.length
+    fileUris = files.map (file) -> sparqlEscapeUri(file)
+    fileStatement = "prov:generated #{fileUris.join(',')} ;"
 
   await update """
     PREFIX crm: <http://data.rollvolet.be/vocabularies/crm/>
@@ -198,9 +200,9 @@ export insertAccountancyExport = (fromNumber, untilNumber, type, files) ->
         mu:uuid #{sparqlEscapeString(id)} ;
         dct:type #{sparqlEscapeUri(type)} ;
         prov:startedAtTime #{sparqlEscapeDateTime(now)} ;
+        #{fileStatement or ""}
         crm:fromNumber #{sparqlEscapeInt(fromNumber)} ;
-        crm:untilNumber #{sparqlEscapeInt(untilNumber)} ;
-        prov:generated #{fileUris.join(',')} .
+        crm:untilNumber #{sparqlEscapeInt(untilNumber)} .
     }
   """
 

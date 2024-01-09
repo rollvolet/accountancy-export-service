@@ -16,35 +16,39 @@ export default class AccountancyExport
     invoices = await fetchInvoices(@fromNumber, @untilNumber, @isDryRun)
     customers = sortBy uniqBy(invoices.map((invoice) -> invoice.customer), 'number'), 'number'
 
-    if @isDryRun
-      console.log("Starting dry run of accountancy export. Simulating booking of #{invoices.length} invoices and #{customers.length} customers")
+    if invoices.length
+      if @isDryRun
+        console.log("Starting dry run of accountancy export. Simulating booking of #{invoices.length} invoices and #{customers.length} customers")
+      else
+        console.log("Starting accountancy export. #{invoices.length} invoices and #{customers.length} customers will be booked.")
+
+      invoiceExportLines = await Promise.all(
+        invoices.map (invoice) ->
+          isValid = await invoice.validate()
+          if (isValid)
+            lines = invoice.export()
+            console.log("Exported invoice #{invoice.number}")
+            lines
+          else
+            console.log("Invoice #{invoice.number} is not valid for export")
+            []
+      )
+      invoiceExportLines = invoiceExportLines.flat()
+      csv = @serializeCsv invoiceExportLines
+      invoiceFile = await @writeFile csv, INVOICE_EXPORT_FILE_TYPE
+
+      customerExportLines = customers.map (customer) ->
+        line = customer.export()
+        console.log("Exported customer #{customer.number}")
+        line
+      csv = @serializeCsv customerExportLines
+      customerFile = await @writeFile csv, CUSTOMER_EXPORT_FILE_TYPE
+
+      await @save [invoiceFile.uri, customerFile.uri]
+      await @book() unless @isDryRun
     else
-      console.log("Starting accountancy export. #{invoices.length} invoices and #{customers.length} customers will be booked.")
-
-    invoiceExportLines = await Promise.all(
-      invoices.map (invoice) ->
-        isValid = await invoice.validate()
-        if (isValid)
-          lines = invoice.export()
-          console.log("Exported invoice #{invoice.number}")
-          lines
-        else
-          console.log("Invoice #{invoice.number} is not valid for export")
-          []
-    )
-    invoiceExportLines = invoiceExportLines.flat()
-    csv = @serializeCsv invoiceExportLines
-    invoiceFile = await @writeFile csv, INVOICE_EXPORT_FILE_TYPE
-
-    customerExportLines = customers.map (customer) ->
-      line = customer.export()
-      console.log("Exported customer #{customer.number}")
-      line
-    csv = @serializeCsv customerExportLines
-    customerFile = await @writeFile csv, CUSTOMER_EXPORT_FILE_TYPE
-
-    await @save [invoiceFile.uri, customerFile.uri]
-    await @book() unless @isDryRun
+      console.log("No invoices found in range [#{@fromNumber}-#{@untilNumber}] to export. No export files will be generated.")
+      await @save()
 
   serializeCsv: (lines) ->
     stringifyCsv lines,
@@ -67,7 +71,7 @@ export default class AccountancyExport
     file.size = stats.size
     await insertFile file
 
-  save: (files) ->
+  save: (files = []) ->
     { @uri, @id, @date } = await insertAccountancyExport(@fromNumber, @untilNumber, @type, files)
 
   book: ->
