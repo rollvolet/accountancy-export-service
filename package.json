@@ -1,6 +1,6 @@
 {
   "name": "accountancy-export-service",
-  "version": "0.1.0-beta.5",
+  "version": "0.1.0-beta.6",
   "description": "Microservice generating an export for the accountancy system",
   "main": "app.js",
   "scripts": {
