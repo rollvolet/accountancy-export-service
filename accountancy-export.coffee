@@ -66,7 +66,8 @@ export default class AccountancyExport
       creator: @creator
       type: type
     path = "/share/#{file.name}"
-    await fs.writeFile path, content
+    dosContent = content.replaceAll '\n', '\r\n' # Accountancy system expects CRLF line endings
+    await fs.writeFile path, dosContent
     stats = await fs.stat path
     file.size = stats.size
     await insertFile file
