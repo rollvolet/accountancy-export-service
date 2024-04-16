@@ -104,7 +104,10 @@ export bookInvoices = (fromNumber, untilNumber) ->
         ext:invoice
         ext:depositInvoice
       }
-      ?invoice p2poInvoice:hasBuyer/vcard:hasUID ?customerNumber .
+      ?invoice p2poInvoice:hasBuyer ?customer .
+      ?customer vcard:hasUID ?customerNumber ;
+        prov:hadPrimarySource/vcard:hasFamilyName ?customerName ;
+        dct:type ?customerType .
     }
   """
 
