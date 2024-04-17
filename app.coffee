@@ -1,8 +1,8 @@
-import { app, errorHandler } from 'mu'
+import { app, errorHandler, uuid } from 'mu'
 import { CronJob } from 'cron'
 import fetch from 'node-fetch'
 import AccountancyExport from './accountancy-export'
-import { fetchUserForSession } from './sparql'
+import { fetchUserForSession, fetchUnexportedInvoices } from './sparql'
 import { ensureInvoiceAmounts } from './batch-jobs'
 
 INVOICE_AMOUNT_VALIDATION_FREQUENCY = process.env.INVOICE_AMOUNT_VALIDATION_FREQUENCY || '0 */30 * * * *' # every 30 minutes
@@ -41,5 +41,24 @@ app.post '/accountancy-exports', (req, res, next) ->
 app.put '/invoice-amounts/', (req, res, next) ->
   ensureInvoiceAmounts() # don't await async task
   res.status(202).send()
+
+app.get '/accountancy-export-warnings', (req, res, next) ->
+  errors = await fetchUnexportedInvoices()
+
+  data = errors.map (error) ->
+    type: 'accountancy-export-warnings'
+    id: uuid()
+    relationships:
+      invoice:
+        data:
+          type: if error.invoice.type is 'https://purl.org/p2p-o/invoice#E-FinalInvoice' then 'invoices' else 'deposit-invoices'
+          id: error.invoice.id
+      'accountancy-export':
+        data:
+          type: 'accountancy-exports'
+          id: error.accountancyExport.id
+
+  res.send
+    data: data
 
 app.use(errorHandler)

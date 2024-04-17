@@ -111,6 +111,40 @@ export bookInvoices = (fromNumber, untilNumber) ->
     }
   """
 
+export fetchUnexportedInvoices = () ->
+  result = await query """
+    PREFIX mu: <http://mu.semte.ch/vocabularies/core/>
+    PREFIX p2poDocument: <https://purl.org/p2p-o/document#>
+    PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
+    PREFIX crm: <http://data.rollvolet.be/vocabularies/crm/>
+    PREFIX dct: <http://purl.org/dc/terms/>
+
+    SELECT ?invoice ?invoiceType ?uuid (MAX(?accountancyExport) as ?export) (MAX(?accountancyExportId) as ?exportId)
+    WHERE {
+      ?invoice a p2poDocument:E-Invoice, ?invoiceType ;
+        mu:uuid ?uuid ;
+        p2poInvoice:invoiceNumber ?number .
+      FILTER (?invoiceType != p2poDocument:E-Invoice)
+      FILTER NOT EXISTS { ?invoice crm:bookingDate ?bookingDate . }
+
+      ?accountancyExport a crm:AccountancyExport ;
+          mu:uuid ?accountancyExportId ;
+          crm:fromNumber ?fromNumber ;
+          crm:untilNumber ?untilNumber .
+      FILTER (?number >= ?fromNumber && ?number <= ?untilNumber)
+      FILTER NOT EXISTS { ?accountancyExport dct:type <http://data.rollvolet.be/vocabularies/crm/DryRunAccountancyExport> }
+    } GROUP BY ?invoice ?uuid ?invoiceType
+  """
+
+  result.results.bindings.map (binding) ->
+    invoice:
+      uri: binding.invoice.value
+      id: binding.uuid.value
+      type: binding.invoiceType.value
+    accountancyExport:
+      uri: binding.export.value
+      id: binding.exportId.value
+
 export getInvoicelines = (uri) ->
   result = await query """
     PREFIX p2poInvoice: <https://purl.org/p2p-o/invoice#>
