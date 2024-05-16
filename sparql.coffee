@@ -87,6 +87,7 @@ export bookInvoices = (fromNumber, untilNumber) ->
     PREFIX crm: <http://data.rollvolet.be/vocabularies/crm/>
     PREFIX schema: <http://schema.org/>
     PREFIX vcard: <http://www.w3.org/2006/vcard/ns#>
+    PREFIX dct: <http://purl.org/dc/terms/>
 
     INSERT {
       ?invoice crm:bookingDate #{sparqlEscapeDateTime(now)} .
